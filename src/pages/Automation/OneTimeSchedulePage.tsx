@@ -114,7 +114,7 @@ export const OneTimeSchedulePage: React.FC = () => {
         event: eventCode,
         userId: userId.trim(),
         payload: parsedPayload,
-        sendAt: sendDateObj.toISOString(),
+        sendAt: sendAtInput.replace('T', ' ') + ':00',
       });
       setIsCreateOpen(false);
       addToast('success', 'Scheduled Event Created!', `Scheduled for ${sendDateObj.toLocaleString()}`);

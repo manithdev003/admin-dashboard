@@ -31,6 +31,7 @@ import { useTemplates } from './hooks/useTemplates';
 import { useRules } from './hooks/useRules';
 import { useDevices } from './hooks/useDevices';
 import { useSchedules } from './hooks/useSchedules';
+import { useRecurringSchedules } from './hooks/useRecurringSchedules';
 import { useNotifications } from './hooks/useNotifications';
 import { useOperations } from './hooks/useOperations';
 
@@ -45,6 +46,15 @@ export const AppContent: React.FC = () => {
   const { rules, refetch: refetchRules, createRule, updateRule, toggleRule, deleteRule } = useRules();
   const { devices, refetch: refetchDevices, registerDevice, heartbeatDevice, deactivateDevice, deleteDevice } = useDevices();
   const { scheduled, refetch: refetchSchedules, createSchedule, reschedule, cancelSchedule, deleteSchedule } = useSchedules();
+  const {
+    recurringSchedules,
+    refetch: refetchRecurring,
+    createRecurringSchedule,
+    pauseRecurringSchedule,
+    resumeRecurringSchedule,
+    rescheduleRecurringSchedule,
+    deleteRecurringSchedule,
+  } = useRecurringSchedules();
   const { publishedEvents, refetch: refetchPublished, publishEvent } = useNotifications();
   const { queueMetrics, systemHealth, refetchQueue, refetchHealth } = useOperations(scheduled, publishedEvents);
 
@@ -65,6 +75,7 @@ export const AppContent: React.FC = () => {
       refetchRules(),
       refetchDevices(),
       refetchSchedules(),
+      refetchRecurring(),
       refetchPublished(),
       refetchQueue(),
       refetchHealth(),
@@ -78,6 +89,7 @@ export const AppContent: React.FC = () => {
     rules,
     devices,
     scheduled,
+    recurringSchedules,
     publishedEvents,
     healthConnected: systemHealth.backend,
     searchQuery,
@@ -107,6 +119,11 @@ export const AppContent: React.FC = () => {
     onReschedule: (id: string, sendAt: string) => reschedule({ id, sendAt }),
     onCancelSchedule: cancelSchedule,
     onDeleteSchedule: deleteSchedule,
+    onCreateRecurringSchedule: createRecurringSchedule,
+    onPauseRecurringSchedule: pauseRecurringSchedule,
+    onResumeRecurringSchedule: resumeRecurringSchedule,
+    onRescheduleRecurringSchedule: (id: string, cronExpression: string) => rescheduleRecurringSchedule({ id, cronExpression }),
+    onDeleteRecurringSchedule: deleteRecurringSchedule,
     onPublishEvent: publishEvent,
   };
 

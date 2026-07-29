@@ -21,7 +21,7 @@ const pathMeta: Record<string, { title: string; subtitle: string; category: stri
   '/devices': { category: 'Management', title: 'Devices', subtitle: 'Registered user hardware devices, FCM tokens, and pulse status' },
   '/publisher': { category: 'Automation', title: 'Event Publisher Studio', subtitle: 'Interactive event payload editor, trigger simulator, and cURL generator' },
   '/automation/one-time': { category: 'Automation', title: 'One-Time Schedule', subtitle: 'Schedule delayed notification events for future date and time' },
-  '/automation/recurring': { category: 'Automation', title: 'Recurring Schedule (Coming Soon)', subtitle: 'Cron and interval recurring notification jobs' },
+  '/automation/recurring': { category: 'Automation', title: 'Recurring Schedule', subtitle: 'Cron and interval recurring notification jobs' },
   '/automation/conditions': { category: 'Automation', title: 'Condition Automation (Coming Soon)', subtitle: 'Multi-step event workflow automations and triggers' },
   '/notifications': { category: 'Delivery', title: 'Notifications', subtitle: 'List and search sent notifications across channels' },
   '/notification-logs': { category: 'Delivery', title: 'Notification Logs', subtitle: 'Detailed timeline logs, attempt counters, and error tracebacks' },

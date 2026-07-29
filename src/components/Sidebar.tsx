@@ -62,7 +62,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ healthConnected, onOpenSetting
       items: [
         { path: '/publisher', label: 'Event Publisher', icon: Send },
         { path: '/automation/one-time', label: 'One-Time Schedule', icon: Clock },
-        { path: '/automation/recurring', label: 'Recurring Schedule', icon: Repeat, badge: 'Soon' },
+        { path: '/automation/recurring', label: 'Recurring Schedule', icon: Repeat },
         { path: '/automation/conditions', label: 'Condition Automation', icon: GitBranch, badge: 'Soon' },
       ],
     },

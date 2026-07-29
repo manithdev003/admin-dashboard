@@ -33,6 +33,7 @@ export const OverviewPage: React.FC = () => {
     healthConnected,
     queueMetrics,
     systemHealth,
+    publishedEvents = [],
   } = useOutletContext<any>();
 
   const stats = [
@@ -147,7 +148,7 @@ export const OverviewPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Activity & Recent Errors Grid */}
+        {/* Dynamic Recent Activity & Recent Errors Grid */}
         <div className="glass-panel rounded-2xl p-5 border space-y-3 lg:col-span-2">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -158,30 +159,53 @@ export const OverviewPage: React.FC = () => {
             </button>
           </div>
           <div className="space-y-2 text-xs">
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="font-mono text-slate-300">event.published</span>
-                <span className="text-slate-500">equity / portfolio.summary.updated</span>
+            {publishedEvents.length === 0 && devices.filter((d: any) => !d.isActive).length === 0 ? (
+              <div className="p-4 rounded-xl bg-slate-900/60 text-slate-500 text-center text-xs">
+                No recent activity recorded yet. Publish an event to see live logs.
               </div>
-              <span className="text-[11px] text-slate-500">Just now</span>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="w-2 h-2 rounded-full bg-purple-400" />
-                <span className="font-mono text-slate-300">template.rendered</span>
-                <span className="text-slate-500">PUSH template rendered with mustache variables</span>
-              </div>
-              <span className="text-[11px] text-slate-500">2 mins ago</span>
-            </div>
-            <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-900/50 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
-                <span className="font-mono text-rose-300">error.token_unregistered</span>
-                <span className="text-slate-400">FCM device token expired or invalid</span>
-              </div>
-              <span className="text-[11px] text-rose-400 font-mono">Recent Error</span>
-            </div>
+            ) : (
+              <>
+                {publishedEvents.slice(0, 3).map((item: any) => {
+                  const isFailed = item.status === 'FAILED';
+                  return (
+                    <div
+                      key={item.id}
+                      className={`p-3 rounded-xl border flex items-center justify-between ${
+                        isFailed ? 'bg-rose-950/40 border-rose-900/50' : 'bg-slate-900/80 border-slate-800'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        {isFailed ? (
+                          <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                        )}
+                        <span className={`font-mono ${isFailed ? 'text-rose-300 font-bold' : 'text-slate-300'}`}>
+                          {isFailed ? 'error.event_failed' : 'event.published'}
+                        </span>
+                        <span className="text-slate-400 truncate max-w-[280px]">
+                          {item.userId} ({item.status})
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-slate-500 shrink-0">{new Date(item.createdAt).toLocaleTimeString()}</span>
+                    </div>
+                  );
+                })}
+
+                {devices.filter((d: any) => !d.isActive).slice(0, 2).map((d: any) => (
+                  <div key={d.id} className="p-3 rounded-xl bg-amber-950/40 border border-amber-900/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span className="font-mono text-amber-300 font-bold">device.token_deactivated</span>
+                      <span className="text-slate-400 truncate max-w-[280px]">
+                        FCM token deactivated for {d.userId} ({d.platform})
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-amber-400 font-mono shrink-0">Deactivated</span>
+                  </div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>

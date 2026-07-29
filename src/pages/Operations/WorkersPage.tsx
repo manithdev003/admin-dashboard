@@ -1,19 +1,49 @@
 import React from 'react';
-import { Cpu, CheckCircle2, Play, Pause, Activity } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { Cpu } from 'lucide-react';
 import { StatusBadge } from '../../components/StatusBadge';
 
 export const WorkersPage: React.FC = () => {
+  const { systemHealth, queueMetrics, scheduled = [], recurringSchedules = [] } = useOutletContext<any>();
+
+  const isWorkerOnline = systemHealth?.worker !== false;
+  const isRedisOnline = systemHealth?.redis !== false;
+
   const workers = [
-    { id: 'wrk-01', name: 'Queue Worker Thread #1', concurrency: 5, status: 'ACTIVE', processedCount: 142, failedCount: 0, lastHeartbeat: 'Just now' },
-    { id: 'wrk-02', name: 'Queue Worker Thread #2', concurrency: 5, status: 'ACTIVE', processedCount: 98, failedCount: 1, lastHeartbeat: 'Just now' },
-    { id: 'wrk-03', name: 'Scheduled Job Looper', concurrency: 2, status: 'IDLE', processedCount: 15, failedCount: 0, lastHeartbeat: '3s ago' },
+    {
+      id: 'wrk-01',
+      name: 'Event Processing Worker #1',
+      concurrency: 5,
+      status: isWorkerOnline ? (queueMetrics.active > 0 ? 'ACTIVE' : 'IDLE') : 'FAILED',
+      processedCount: queueMetrics.completed || 0,
+      failedCount: queueMetrics.failed || 0,
+      lastHeartbeat: isWorkerOnline ? 'Just now' : 'Offline',
+    },
+    {
+      id: 'wrk-02',
+      name: 'One-Time Job Scheduler',
+      concurrency: 2,
+      status: isRedisOnline ? (scheduled.length > 0 ? 'ACTIVE' : 'IDLE') : 'FAILED',
+      processedCount: scheduled.filter((s: any) => s.status === 'COMPLETED').length,
+      failedCount: scheduled.filter((s: any) => s.status === 'FAILED').length,
+      lastHeartbeat: isRedisOnline ? '3s ago' : 'Offline',
+    },
+    {
+      id: 'wrk-03',
+      name: 'Recurring Cron Looper',
+      concurrency: 2,
+      status: isRedisOnline ? (recurringSchedules.filter((r: any) => r.status === 'ACTIVE').length > 0 ? 'ACTIVE' : 'IDLE') : 'FAILED',
+      processedCount: recurringSchedules.length,
+      failedCount: 0,
+      lastHeartbeat: isRedisOnline ? 'Just now' : 'Offline',
+    },
   ];
 
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-bold text-white">Background Workers & Concurrency</h3>
-        <p className="text-xs text-slate-400">BullMQ worker threads processing Redis event queues.</p>
+        <p className="text-xs text-slate-400">Live BullMQ worker threads, cron loopers, and queue concurrency states.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

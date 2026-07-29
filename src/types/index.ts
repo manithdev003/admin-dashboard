@@ -5,6 +5,7 @@ export * from './rule';
 export * from './device';
 export * from './notification';
 export * from './schedule';
+export * from './recurring-schedule';
 
 export interface QueueMetrics {
   waiting: number;
