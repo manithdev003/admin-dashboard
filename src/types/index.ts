@@ -6,6 +6,7 @@ export * from './device';
 export * from './notification';
 export * from './schedule';
 export * from './recurring-schedule';
+export * from './dead-letter';
 
 export interface QueueMetrics {
   waiting: number;
@@ -15,6 +16,8 @@ export interface QueueMetrics {
   failed: number;
   paused?: number;
   retries?: number;
+  dlqCount?: number;
+  dlqPendingCount?: number;
   redisStatus?: boolean;
 }
 

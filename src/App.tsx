@@ -19,6 +19,7 @@ import { ConditionAutomationPage } from './pages/Automation/ConditionAutomationP
 import { NotificationsListPage } from './pages/Notifications/ListPage';
 import { NotificationsLogsPage } from './pages/Notifications/LogsPage';
 import { QueueMonitorPage } from './pages/Operations/QueuePage';
+import { DeadLetterPage } from './pages/Operations/DeadLetterPage';
 import { MetricsPage } from './pages/Operations/MetricsPage';
 import { WorkersPage } from './pages/Operations/WorkersPage';
 import { SystemHealthPage } from './pages/Operations/SystemHealthPage';
@@ -34,6 +35,7 @@ import { useSchedules } from './hooks/useSchedules';
 import { useRecurringSchedules } from './hooks/useRecurringSchedules';
 import { useNotifications } from './hooks/useNotifications';
 import { useOperations } from './hooks/useOperations';
+import { useDeadLetter } from './hooks/useDeadLetter';
 
 export const AppContent: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,6 +58,7 @@ export const AppContent: React.FC = () => {
     deleteRecurringSchedule,
   } = useRecurringSchedules();
   const { publishedEvents, refetch: refetchPublished, publishEvent } = useNotifications();
+  const { deadLetterEvents, refetch: refetchDeadLetter, retryDeadLetter } = useDeadLetter();
   const { queueMetrics, systemHealth, refetchQueue, refetchHealth } = useOperations(scheduled, publishedEvents);
 
   const addToast = (type: 'success' | 'error' | 'info', title: string, message?: string) => {
@@ -77,6 +80,7 @@ export const AppContent: React.FC = () => {
       refetchSchedules(),
       refetchRecurring(),
       refetchPublished(),
+      refetchDeadLetter(),
       refetchQueue(),
       refetchHealth(),
     ]);
@@ -91,6 +95,7 @@ export const AppContent: React.FC = () => {
     scheduled,
     recurringSchedules,
     publishedEvents,
+    deadLetterEvents,
     healthConnected: systemHealth.backend,
     searchQuery,
     queueMetrics,
@@ -98,6 +103,7 @@ export const AppContent: React.FC = () => {
     onRefresh: loadAllData,
     isRefreshing: false,
     addToast,
+    onRetryDeadLetter: retryDeadLetter,
     onCreateApp: createApp,
     onUpdateApp: (id: string, data: any) => updateApp({ id, data }),
     onDeleteApp: deleteApp,
@@ -158,6 +164,7 @@ export const AppContent: React.FC = () => {
         <Route path="notifications" element={<NotificationsListPage />} />
         <Route path="notification-logs" element={<NotificationsLogsPage />} />
         <Route path="operations/queue" element={<QueueMonitorPage />} />
+        <Route path="operations/dead-letter" element={<DeadLetterPage />} />
         <Route path="operations/metrics" element={<MetricsPage />} />
         <Route path="operations/workers" element={<WorkersPage />} />
         <Route path="operations/health" element={<SystemHealthPage />} />

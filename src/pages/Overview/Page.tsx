@@ -17,6 +17,7 @@ import {
   Flame,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   ArrowRight,
   TrendingUp,
 } from 'lucide-react';
@@ -34,7 +35,10 @@ export const OverviewPage: React.FC = () => {
     queueMetrics,
     systemHealth,
     publishedEvents = [],
+    deadLetterEvents = [],
   } = useOutletContext<any>();
+
+  const pendingDlqCount = deadLetterEvents.filter((e: any) => e.status === 'PENDING').length;
 
   const stats = [
     { label: 'Total Applications', count: applications.length, icon: Layers, path: '/applications', color: 'text-indigo-400', bg: 'bg-indigo-950/50 border-indigo-800/40' },
@@ -42,7 +46,7 @@ export const OverviewPage: React.FC = () => {
     { label: 'Total Templates', count: templates.length, icon: FileCode, path: '/templates', color: 'text-blue-400', bg: 'bg-blue-950/50 border-blue-800/40' },
     { label: 'Total Rules', count: rules.length, icon: Sliders, path: '/rules', color: 'text-purple-400', bg: 'bg-purple-950/50 border-purple-800/40' },
     { label: 'Total Devices', count: devices.length, icon: Smartphone, path: '/devices', color: 'text-emerald-400', bg: 'bg-emerald-950/50 border-emerald-800/40' },
-    { label: 'Notifications Today', count: queueMetrics.completed + 42, icon: BellRing, path: '/notifications', color: 'text-sky-400', bg: 'bg-sky-950/50 border-sky-800/40' },
+    { label: 'Dead Letter (DLQ)', count: pendingDlqCount > 0 ? `${pendingDlqCount} Pending` : deadLetterEvents.length, icon: AlertTriangle, path: '/operations/dead-letter', color: pendingDlqCount > 0 ? 'text-rose-400' : 'text-slate-400', bg: pendingDlqCount > 0 ? 'bg-rose-950/60 border-rose-800/60' : 'bg-slate-900/50 border-slate-800/40' },
     { label: 'Scheduled Jobs', count: scheduled.length, icon: Clock, path: '/automation/one-time', color: 'text-rose-400', bg: 'bg-rose-950/50 border-rose-800/40' },
     { label: 'Active Queue Jobs', count: queueMetrics.waiting + queueMetrics.active, icon: Activity, path: '/operations/queue', color: 'text-teal-400', bg: 'bg-teal-950/50 border-teal-800/40' },
   ];

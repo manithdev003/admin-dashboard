@@ -20,6 +20,7 @@ import {
   Settings,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -77,6 +78,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ healthConnected, onOpenSetting
       label: 'Operations',
       items: [
         { path: '/operations/queue', label: 'Queue Monitor', icon: Activity },
+        { path: '/operations/dead-letter', label: 'Dead Letter Queue', icon: AlertTriangle },
         { path: '/operations/metrics', label: 'Metrics', icon: BarChart3 },
         { path: '/operations/workers', label: 'Workers', icon: Cpu },
         { path: '/operations/health', label: 'System Health', icon: ShieldCheck },
