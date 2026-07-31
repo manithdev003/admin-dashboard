@@ -1,4 +1,5 @@
 import { EventModel } from './event';
+import { NotificationChannelType } from './template';
 
 export type RuleOperator = 
   | 'EQUALS' 
@@ -20,6 +21,7 @@ export interface RuleModel {
   value: any;
   priority: number;
   enabled: boolean;
+  channel: NotificationChannelType;
   createdAt: string;
   updatedAt: string;
 }

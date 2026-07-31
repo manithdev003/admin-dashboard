@@ -26,6 +26,7 @@ export const ruleService = {
     value: string;
     priority?: number;
     enabled?: boolean;
+    channel: string;
   }): Promise<RuleModel> => {
     const client = createApiClient();
     const res = await client.post('/rules', data);
@@ -39,6 +40,7 @@ export const ruleService = {
     value: string;
     priority?: number;
     enabled?: boolean;
+    channel: string;
   }>): Promise<RuleModel> => {
     const client = createApiClient();
     const res = await client.put(`/rules/${id}`, data);

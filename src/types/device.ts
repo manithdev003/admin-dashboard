@@ -7,6 +7,8 @@ export interface DeviceModel {
   applicationId: string;
   application?: Application;
   userId: string;
+  email?: string | null;
+  phone?: string | null;
   deviceId: string;
   platform: DevicePlatform;
   fcmToken: string;
@@ -15,3 +17,4 @@ export interface DeviceModel {
   createdAt: string;
   updatedAt: string;
 }
+  

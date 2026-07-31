@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Smartphone, Heart, Power, Trash2, Copy, Check, Plus, User, ShieldAlert } from 'lucide-react';
+import { Smartphone, Heart, Power, Trash2, Copy, Check, Plus, User, Mail, Phone, ShieldAlert } from 'lucide-react';
 import { Application, DeviceModel, DevicePlatform } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -16,6 +16,8 @@ export const DevicesPage: React.FC = () => {
   // Form State
   const [appId, setAppId] = useState(applications[0]?.id || '');
   const [userId, setUserId] = useState('user-101');
+  const [email, setEmail] = useState('user101@example.com');
+  const [phone, setPhone] = useState('');
   const [deviceId, setDeviceId] = useState('device-android-01');
   const [platform, setPlatform] = useState<DevicePlatform>('ANDROID');
   const [fcmToken, setFcmToken] = useState('fcm_token_dummy_sample_12345');
@@ -25,6 +27,8 @@ export const DevicesPage: React.FC = () => {
     const q = searchQuery.toLowerCase();
     return (
       d.userId.toLowerCase().includes(q) ||
+      (d.email && d.email.toLowerCase().includes(q)) ||
+      (d.phone && d.phone.toLowerCase().includes(q)) ||
       d.deviceId.toLowerCase().includes(q) ||
       d.platform.toLowerCase().includes(q) ||
       (d.fcmToken && d.fcmToken.toLowerCase().includes(q))
@@ -71,14 +75,16 @@ export const DevicesPage: React.FC = () => {
 
   const handleSaveRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!appId || !userId.trim() || !deviceId.trim() || !fcmToken.trim()) {
-      addToast('error', 'Validation Error', 'Application, User ID, Device ID, and FCM Token are required.');
+    if (!appId || !userId.trim() || !email.trim() || !deviceId.trim() || !fcmToken.trim()) {
+      addToast('error', 'Validation Error', 'Application, User ID, Email, Device ID, and FCM Token are required.');
       return;
     }
     setLoading(true);
     try {
       await onRegisterDevice(appId, {
         userId: userId.trim(),
+        email: email.trim(),
+        phone: phone.trim() || undefined,
         deviceId: deviceId.trim(),
         platform,
         fcmToken: fcmToken.trim(),
@@ -146,8 +152,22 @@ export const DevicesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="mt-3 text-xs text-slate-400">
-                    App: <strong className="text-slate-200">{parentApp?.name || d.applicationId}</strong>
+                  <div className="mt-3 space-y-1 text-xs text-slate-400">
+                    <div>
+                      App: <strong className="text-slate-200">{parentApp?.name || d.applicationId}</strong>
+                    </div>
+                    {d.email && (
+                      <div className="flex items-center gap-1.5 text-slate-300">
+                        <Mail className="w-3.5 h-3.5 text-blue-400" />
+                        <span className="font-mono text-[11px] truncate">{d.email}</span>
+                      </div>
+                    )}
+                    {d.phone && (
+                      <div className="flex items-center gap-1.5 text-slate-300">
+                        <Phone className="w-3.5 h-3.5 text-teal-400" />
+                        <span className="font-mono text-[11px] truncate">{d.phone}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* FCM Token Box */}
@@ -228,6 +248,16 @@ export const DevicesPage: React.FC = () => {
                 <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Device ID *</label>
                 <input type="text" required value={deviceId} onChange={(e) => setDeviceId(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
               </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Email Address *</label>
+              <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@example.com" className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Phone Number (Optional)</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1234567890" className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
             </div>
 
             <div>

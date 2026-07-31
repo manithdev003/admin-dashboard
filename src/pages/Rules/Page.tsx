@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Plus, Edit2, Trash2, Sliders, Zap, Check, X, ShieldAlert } from 'lucide-react';
-import { EventModel, RuleModel, RuleOperator } from '../../types';
+import { EventModel, RuleModel, RuleOperator, NotificationChannelType } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { EmptyState } from '../../components/EmptyState';
@@ -15,6 +15,8 @@ const OPERATORS: RuleOperator[] = [
   'LESS_THAN_OR_EQUAL',
   'CONTAINS',
 ];
+
+const CHANNELS: NotificationChannelType[] = ['PUSH', 'EMAIL', 'SMS', 'WHATSAPP', 'IN_APP'];
 
 export const RulesPage: React.FC = () => {
   const { events, rules, searchQuery, onCreateRule, onUpdateRule, onToggleRule, onDeleteRule, addToast } = useOutletContext<any>();
@@ -31,6 +33,7 @@ export const RulesPage: React.FC = () => {
   const [operator, setOperator] = useState<RuleOperator>('EQUALS');
   const [value, setValue] = useState('OPEN');
   const [priority, setPriority] = useState<number>(1);
+  const [channel, setChannel] = useState<NotificationChannelType>('PUSH');
   const [logicGroup, setLogicGroup] = useState<'AND' | 'OR'>('AND');
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +42,8 @@ export const RulesPage: React.FC = () => {
     return (
       rule.name.toLowerCase().includes(q) ||
       rule.field.toLowerCase().includes(q) ||
-      rule.operator.toLowerCase().includes(q)
+      rule.operator.toLowerCase().includes(q) ||
+      (rule.channel && rule.channel.toLowerCase().includes(q))
     );
   });
 
@@ -51,6 +55,7 @@ export const RulesPage: React.FC = () => {
     setOperator('EQUALS');
     setValue('OPEN');
     setPriority(1);
+    setChannel('PUSH');
     setLogicGroup('AND');
     setIsCreateOpen(true);
   };
@@ -63,6 +68,7 @@ export const RulesPage: React.FC = () => {
     setOperator(rule.operator);
     setValue(typeof rule.value === 'object' ? JSON.stringify(rule.value) : String(rule.value));
     setPriority(rule.priority);
+    setChannel(rule.channel || 'PUSH');
   };
 
   const handleSaveCreate = async (e: React.FormEvent) => {
@@ -81,6 +87,7 @@ export const RulesPage: React.FC = () => {
         operator,
         value: value.trim(),
         priority: Number(priority),
+        channel,
         enabled: true,
       });
       setIsCreateOpen(false);
@@ -104,6 +111,7 @@ export const RulesPage: React.FC = () => {
         operator,
         value: value.trim(),
         priority: Number(priority),
+        channel,
       });
       setEditingRule(null);
       addToast('success', 'Rule Updated', `Rule "${name}" updated.`);
@@ -171,14 +179,17 @@ export const RulesPage: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => onToggleRule(rule.id, rule.enabled)}
-                      className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-                        rule.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400 border border-slate-700'
-                      }`}
-                    >
-                      {rule.enabled ? 'ENABLED' : 'DISABLED'}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {rule.channel && <StatusBadge status={rule.channel} type="channel" />}
+                      <button
+                        onClick={() => onToggleRule(rule.id, rule.enabled)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
+                          rule.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        }`}
+                      >
+                        {rule.enabled ? 'ENABLED' : 'DISABLED'}
+                      </button>
+                    </div>
                   </div>
 
                   <p className="text-xs text-slate-400 mt-3 line-clamp-2">{rule.description || 'No description provided.'}</p>
@@ -224,13 +235,23 @@ export const RulesPage: React.FC = () => {
               <Plus className="w-5 h-5 text-purple-400" /> Create Evaluation Rule
             </h3>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Target Event *</label>
-              <select required value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm">
-                {events.map((evt: EventModel) => (
-                  <option key={evt.id} value={evt.id}>{evt.name} ({evt.code})</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Target Event *</label>
+                <select required value={eventId} onChange={(e) => setEventId(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm">
+                  {events.map((evt: EventModel) => (
+                    <option key={evt.id} value={evt.id}>{evt.name} ({evt.code})</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Execution Channel *</label>
+                <select value={channel} onChange={(e) => setChannel(e.target.value as NotificationChannelType)} className="w-full px-4 py-2 rounded-xl glass-input text-sm font-semibold">
+                  {CHANNELS.map((ch) => (
+                    <option key={ch} value={ch}>{ch}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
@@ -294,6 +315,15 @@ export const RulesPage: React.FC = () => {
             <div>
               <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Rule Name *</label>
               <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm" />
+            </div>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Execution Channel *</label>
+              <select value={channel} onChange={(e) => setChannel(e.target.value as NotificationChannelType)} className="w-full px-4 py-2 rounded-xl glass-input text-sm font-semibold">
+                {CHANNELS.map((ch) => (
+                  <option key={ch} value={ch}>{ch}</option>
+                ))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

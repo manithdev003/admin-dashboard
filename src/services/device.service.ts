@@ -7,7 +7,7 @@ export const deviceService = {
     const res = await client.get('/devices');
     return res.data.data || res.data;
   },
-  register: async (applicationId: string, data: { userId: string; deviceId: string; platform: string; fcmToken: string }): Promise<DeviceModel> => {
+  register: async (applicationId: string, data: { userId: string; email?: string; phone?: string; deviceId: string; platform: string; fcmToken: string }): Promise<DeviceModel> => {
     const client = createApiClient();
     const res = await client.post(`/devices/applications/${applicationId}/devices`, data);
     return res.data.data || res.data;
