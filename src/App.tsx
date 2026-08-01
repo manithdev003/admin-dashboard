@@ -18,6 +18,7 @@ import { RecurringSchedulePage } from './pages/Automation/RecurringSchedulePage'
 import { ConditionAutomationPage } from './pages/Automation/ConditionAutomationPage';
 import { NotificationsListPage } from './pages/Notifications/ListPage';
 import { NotificationsLogsPage } from './pages/Notifications/LogsPage';
+import { EmailEditorPage } from './pages/EmailEditor/Page';
 import { QueueMonitorPage } from './pages/Operations/QueuePage';
 import { DeadLetterPage } from './pages/Operations/DeadLetterPage';
 import { MetricsPage } from './pages/Operations/MetricsPage';
@@ -163,6 +164,7 @@ export const AppContent: React.FC = () => {
         <Route path="automation/conditions" element={<ConditionAutomationPage />} />
         <Route path="notifications" element={<NotificationsListPage />} />
         <Route path="notification-logs" element={<NotificationsLogsPage />} />
+        <Route path="email-editor" element={<EmailEditorPage />} />
         <Route path="operations/queue" element={<QueueMonitorPage />} />
         <Route path="operations/dead-letter" element={<DeadLetterPage />} />
         <Route path="operations/metrics" element={<MetricsPage />} />

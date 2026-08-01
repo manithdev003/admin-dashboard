@@ -13,6 +13,7 @@ import {
   GitBranch,
   BellRing,
   FileText,
+  Mail,
   Activity,
   BarChart3,
   Cpu,
@@ -70,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ healthConnected, onOpenSetting
     {
       label: 'Delivery',
       items: [
+        { path: '/email-editor', label: 'Email Studio', icon: Mail },
         { path: '/notifications', label: 'Notifications', icon: BellRing },
         { path: '/notification-logs', label: 'Notification Logs', icon: FileText },
       ],
