@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import Editor from '@monaco-editor/react';
 import {
   Mail,
   Send,
@@ -19,8 +20,13 @@ import {
   Layers,
   User,
   Plus,
+  Search,
+  Users,
+  CheckSquare,
+  Square,
+  Loader2,
 } from 'lucide-react';
-import { Application, EventModel, NotificationTemplateModel } from '../../types';
+import { Application, EventModel, NotificationTemplateModel, DeviceModel } from '../../types';
 import { notificationService } from '../../services/notification.service';
 
 interface PresetEmailTemplate {
@@ -191,13 +197,84 @@ const PRESET_TEMPLATES: PresetEmailTemplate[] = [
 ];
 
 export const EmailEditorPage: React.FC = () => {
-  const { applications, events, templates, addToast } = useOutletContext<any>();
+  const { applications, events, templates, devices, addToast } = useOutletContext<any>();
 
   // Target metadata
   const [recipientEmail, setRecipientEmail] = useState('user.demo@example.com');
   const [recipientUserId, setRecipientUserId] = useState('usr_998822');
   const [selectedAppCode, setSelectedAppCode] = useState(applications[0]?.code || 'equity');
   const [selectedEventCode, setSelectedEventCode] = useState(events[0]?.code || 'user.welcome');
+
+  // Recipient selection mode states
+  const [recipientMode, setRecipientMode] = useState<'manual' | 'registry'>('manual');
+  const [registrySearch, setRegistrySearch] = useState('');
+  const [selectedEmails, setSelectedEmails] = useState<string[]>([]);
+
+  // Bulk progress monitoring
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0, successCount: 0, failureCount: 0 });
+  const [bulkLog, setBulkLog] = useState<{ email: string; success: boolean; message: string }[]>([]);
+
+  // Deduplicate and pull registered contact emails from context devices
+  const registeredRecipients = useMemo(() => {
+    if (!devices) return [];
+    const emailMap = new Map<string, { email: string; userId: string; platforms: string[] }>();
+    devices.forEach((d: DeviceModel) => {
+      if (d.email) {
+        const emailKey = d.email.trim().toLowerCase();
+        const existing = emailMap.get(emailKey);
+        if (existing) {
+          if (d.userId && !existing.userId) {
+            existing.userId = d.userId;
+          }
+          if (d.platform && !existing.platforms.includes(d.platform)) {
+            existing.platforms.push(d.platform);
+          }
+        } else {
+          emailMap.set(emailKey, {
+            email: d.email.trim(),
+            userId: d.userId || '',
+            platforms: d.platform ? [d.platform] : [],
+          });
+        }
+      }
+    });
+    return Array.from(emailMap.values());
+  }, [devices]);
+
+  const filteredRecipients = useMemo(() => {
+    const q = registrySearch.toLowerCase().trim();
+    if (!q) return registeredRecipients;
+    return registeredRecipients.filter(
+      (r) => r.email.toLowerCase().includes(q) || r.userId.toLowerCase().includes(q)
+    );
+  }, [registeredRecipients, registrySearch]);
+
+  const handleToggleSelectAll = () => {
+    const filteredEmails = filteredRecipients.map((r) => r.email);
+    const allFilteredSelected = filteredEmails.every((email) => selectedEmails.includes(email));
+    if (allFilteredSelected) {
+      // Deselect all filtered emails
+      setSelectedEmails((prev) => prev.filter((email) => !filteredEmails.includes(email)));
+    } else {
+      // Select all filtered emails
+      setSelectedEmails((prev) => {
+        const newSelection = [...prev];
+        filteredEmails.forEach((email) => {
+          if (!newSelection.includes(email)) {
+            newSelection.push(email);
+          }
+        });
+        return newSelection;
+      });
+    }
+  };
+
+  const handleToggleSelectEmail = (email: string) => {
+    setSelectedEmails((prev) =>
+      prev.includes(email) ? prev.filter((e) => e !== email) : [...prev, email]
+    );
+  };
 
   // Email subject & body
   const [subject, setSubject] = useState(PRESET_TEMPLATES[0].subject);
@@ -207,10 +284,9 @@ export const EmailEditorPage: React.FC = () => {
   );
 
   // View state
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview' | 'html'>('editor');
+  const [activeTab, setActiveTab] = useState<'preview' | 'html'>('preview');
   const [previewViewport, setPreviewViewport] = useState<'desktop' | 'mobile'>('desktop');
   const [selectedPresetName, setSelectedPresetName] = useState(PRESET_TEMPLATES[0].name);
-
   // Execution state
   const [loading, setLoading] = useState(false);
   const [responseResult, setResponseResult] = useState<any>(null);
@@ -289,8 +365,9 @@ export const EmailEditorPage: React.FC = () => {
   };
 
   const handleSendEmail = async () => {
-    if (!recipientEmail.trim()) {
-      addToast('error', 'Missing Recipient Email', 'Please enter a valid recipient email address.');
+    const targets = recipientMode === 'manual' ? [recipientEmail.trim()] : selectedEmails;
+    if (targets.length === 0) {
+      addToast('error', 'No Recipients Selected', 'Please specify a recipient email address or select contacts.');
       return;
     }
     if (!subject.trim() || !body.trim()) {
@@ -300,47 +377,97 @@ export const EmailEditorPage: React.FC = () => {
 
     setLoading(true);
     setResponseResult(null);
+    setBulkLog([]);
+    setBulkProgress({ current: 0, total: targets.length, successCount: 0, failureCount: 0 });
 
-    try {
-      const res = await notificationService.sendDirect({
-        application: selectedAppCode,
-        event: selectedEventCode,
-        channel: 'EMAIL',
-        recipient: {
-          email: recipientEmail.trim(),
-          userId: recipientUserId.trim() || undefined,
-        },
-        notification: {
-          title: renderedSubject,
-          body: renderedBody,
-        },
-        data: {
-          source: 'ADMIN_EMAIL_STUDIO',
-          presetUsed: selectedPresetName,
-        },
-      });
+    const isBulk = targets.length > 1;
+    if (isBulk) {
+      setBulkSending(true);
+    }
 
-      setResponseResult({
-        success: true,
-        data: res,
-        timestamp: new Date().toISOString(),
-      });
+    let successes = 0;
+    let failures = 0;
+    const logEntries: { email: string; success: boolean; message: string }[] = [];
 
+    // Send dispatches sequentially to provide smooth progress logging
+    for (let i = 0; i < targets.length; i++) {
+      const email = targets[i];
+      // Try to find the userId for this email from our registered list
+      const matchedReg = registeredRecipients.find((r) => r.email.toLowerCase() === email.toLowerCase());
+      const targetUserId = matchedReg ? matchedReg.userId : (recipientMode === 'manual' ? recipientUserId : '');
+
+      setBulkProgress((prev) => ({ ...prev, current: i + 1 }));
+
+      try {
+        const res = await notificationService.sendDirect({
+          application: selectedAppCode,
+          event: selectedEventCode,
+          channel: 'EMAIL',
+          recipient: {
+            email: email,
+            userId: targetUserId || undefined,
+          },
+          notification: {
+            title: renderedSubject,
+            body: renderedBody,
+          },
+          data: {
+            source: 'ADMIN_EMAIL_STUDIO',
+            presetUsed: selectedPresetName,
+            bulkIndex: isBulk ? i : undefined,
+          },
+        });
+
+        successes++;
+        logEntries.push({ email, success: true, message: 'Delivered successfully' });
+        setBulkProgress((prev) => ({ ...prev, successCount: successes }));
+      } catch (err: any) {
+        failures++;
+        const errMsg = err.response?.data?.message || err.message || 'Unknown error';
+        logEntries.push({ email, success: false, message: errMsg });
+        setBulkProgress((prev) => ({ ...prev, failureCount: failures }));
+      }
+      setBulkLog([...logEntries]);
+    }
+
+    setLoading(false);
+    setBulkSending(false);
+
+    if (isBulk) {
       addToast(
-        'success',
-        'Email Sent Successfully! 📧',
-        `Delivered to ${recipientEmail.trim()} via Notification Service.`
+        successes === targets.length ? 'success' : failures === targets.length ? 'error' : 'info',
+        'Bulk Send Complete',
+        `Dispatched to ${targets.length} recipients. Success: ${successes}, Failures: ${failures}`
       );
-    } catch (err: any) {
-      const errData = err.response?.data || { message: err.message };
       setResponseResult({
-        success: false,
-        data: errData,
+        success: failures === 0,
+        data: {
+          summary: 'Sent bulk campaign',
+          total: targets.length,
+          success: successes,
+          failed: failures,
+          log: logEntries,
+        },
         timestamp: new Date().toISOString(),
       });
-      addToast('error', 'Send Failed', errData.message || err.message);
-    } finally {
-      setLoading(false);
+    } else {
+      // Single email send behavior
+      const singleLog = logEntries[0];
+      if (singleLog.success) {
+        setResponseResult({
+          success: true,
+          data: { email: targets[0], status: 'SENT', message: 'Delivered' },
+          timestamp: new Date().toISOString(),
+        });
+        addToast('success', 'Email Sent Successfully! 📧', `Delivered to ${targets[0]}`);
+      } else {
+        setResponseResult({
+          success: false,
+          data: { email: targets[0], status: 'FAILED', message: singleLog.message },
+          timestamp: new Date().toISOString(),
+        });
+        addToast('error', 'Send Failed', singleLog.message);
+      }
     }
   };
 
@@ -349,6 +476,29 @@ export const EmailEditorPage: React.FC = () => {
     setCopiedHtml(true);
     addToast('success', 'HTML Copied', 'Rendered HTML copied to clipboard.');
     setTimeout(() => setCopiedHtml(false), 2000);
+  };
+
+  const getSendButtonLabel = () => {
+    if (loading) {
+      if (bulkSending) {
+        return `Sending ${bulkProgress.current}/${bulkProgress.total}...`;
+      }
+      return 'Sending Email...';
+    }
+    if (recipientMode === 'manual') {
+      return 'Send Email Now';
+    }
+    const count = selectedEmails.length;
+    if (count === 0) return 'Select Recipients First';
+    if (count === 1) return 'Send Email';
+    return `Send Bulk Emails (${count})`;
+  };
+
+  const isSendDisabled = () => {
+    if (loading) return true;
+    if (recipientMode === 'registry' && selectedEmails.length === 0) return true;
+    if (recipientMode === 'manual' && !recipientEmail.trim()) return true;
+    return false;
   };
 
   return (
@@ -370,15 +520,18 @@ export const EmailEditorPage: React.FC = () => {
             </div>
           </div>
         </div>
-
         <div className="flex items-center gap-3">
           <button
             onClick={handleSendEmail}
-            disabled={loading}
+            disabled={isSendDisabled()}
             className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold shadow-xl shadow-indigo-950/80 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
           >
-            <Send className={`w-4 h-4 fill-white ${loading ? 'animate-bounce' : ''}`} />
-            <span>{loading ? 'Sending Email...' : 'Send Email Now'}</span>
+            {loading ? (
+              <Loader2 className="w-4 h-4 text-white animate-spin" />
+            ) : (
+              <Send className="w-4 h-4 fill-white" />
+            )}
+            <span>{getSendButtonLabel()}</span>
           </button>
         </div>
       </div>
@@ -454,34 +607,160 @@ export const EmailEditorPage: React.FC = () => {
               <User className="w-4 h-4 text-indigo-400" /> 1. Recipient & Event Target Details
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">
-                  Recipient Email Address *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={recipientEmail}
-                  onChange={(e) => setRecipientEmail(e.target.value)}
-                  placeholder="e.g. john.doe@example.com"
-                  className="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-mono font-bold text-indigo-300"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">
-                  User ID (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={recipientUserId}
-                  onChange={(e) => setRecipientUserId(e.target.value)}
-                  placeholder="e.g. usr_998822"
-                  className="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-mono text-slate-300"
-                />
-              </div>
+            {/* Recipient Selection Mode Tabs */}
+            <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 mb-2">
+              <button
+                type="button"
+                onClick={() => setRecipientMode('manual')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  recipientMode === 'manual'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>Manual Entry</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRecipientMode('registry')}
+                className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  recipientMode === 'registry'
+                    ? 'bg-indigo-600 text-white shadow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5" />
+                <span>Select from Registry</span>
+              </button>
             </div>
+
+            {recipientMode === 'manual' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">
+                    Recipient Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={recipientEmail}
+                    onChange={(e) => setRecipientEmail(e.target.value)}
+                    placeholder="e.g. john.doe@example.com"
+                    className="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-mono font-bold text-indigo-300"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">
+                    User ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={recipientUserId}
+                    onChange={(e) => setRecipientUserId(e.target.value)}
+                    placeholder="e.g. usr_998822"
+                    className="w-full px-3.5 py-2 rounded-xl glass-input text-xs font-mono text-slate-300"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                    <input
+                      type="text"
+                      placeholder="Search registry by email or user ID..."
+                      value={registrySearch}
+                      onChange={(e) => setRegistrySearch(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 rounded-xl glass-input text-xs"
+                    />
+                  </div>
+                  {selectedEmails.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEmails([])}
+                      className="px-3 py-2 rounded-xl border border-rose-950/60 bg-rose-950/20 text-rose-300 text-[11px] font-semibold hover:bg-rose-950/40 transition-colors"
+                    >
+                      Clear ({selectedEmails.length})
+                    </button>
+                  )}
+                </div>
+
+                <div className="border border-slate-800/80 rounded-xl overflow-hidden bg-slate-950/40">
+                  {/* Table Header */}
+                  <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-900/80 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800/60">
+                    <div className="col-span-1 flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={handleToggleSelectAll}
+                        className="text-slate-400 hover:text-indigo-400 transition-colors"
+                      >
+                        {filteredRecipients.length > 0 && filteredRecipients.every(r => selectedEmails.includes(r.email)) ? (
+                          <CheckSquare className="w-4 h-4 text-indigo-400" />
+                        ) : (
+                          <Square className="w-4 h-4 text-slate-500" />
+                        )}
+                      </button>
+                    </div>
+                    <div className="col-span-7">Email Contact</div>
+                    <div className="col-span-4">User ID</div>
+                  </div>
+
+                  {/* Scrollable Rows */}
+                  <div className="max-h-[160px] overflow-y-auto divide-y divide-slate-800/40 text-xs">
+                    {filteredRecipients.length === 0 ? (
+                      <div className="p-8 text-center text-slate-500 text-[11px] italic">
+                        No matching email contacts found in device registry.
+                      </div>
+                    ) : (
+                      filteredRecipients.map((rec) => {
+                        const isSelected = selectedEmails.includes(rec.email);
+                        return (
+                          <div
+                            key={rec.email}
+                            onClick={() => handleToggleSelectEmail(rec.email)}
+                            className={`grid grid-cols-12 gap-2 px-3 py-2 items-center hover:bg-slate-900/35 cursor-pointer transition-colors ${
+                              isSelected ? 'bg-indigo-950/15' : ''
+                            }`}
+                          >
+                            <div className="col-span-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => handleToggleSelectEmail(rec.email)}
+                                className="text-slate-400 hover:text-indigo-400 transition-colors"
+                              >
+                                {isSelected ? (
+                                  <CheckSquare className="w-4 h-4 text-indigo-400" />
+                                ) : (
+                                  <Square className="w-4 h-4 text-slate-600" />
+                                )}
+                              </button>
+                            </div>
+                            <div className="col-span-7 font-semibold text-slate-200 truncate pr-2" title={rec.email}>
+                              {rec.email}
+                            </div>
+                            <div className="col-span-4 font-mono text-[11px] text-slate-400 truncate" title={rec.userId || 'N/A'}>
+                              {rec.userId || <span className="text-slate-600 italic">none</span>}
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between text-[11px] text-slate-400 px-1">
+                  <div>
+                    Showing {filteredRecipients.length} of {registeredRecipients.length} contacts
+                  </div>
+                  <div className="font-semibold text-indigo-400 bg-indigo-950/40 border border-indigo-900/60 px-2 py-0.5 rounded-md">
+                    Selected: {selectedEmails.length}
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
               <div>
@@ -566,16 +845,26 @@ export const EmailEditorPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-2">
                 Email Body HTML (Supports Mustache variables & HTML styling) *
               </label>
-              <textarea
-                rows={12}
-                required
-                value={body}
-                onChange={(e) => setBody(e.target.value)}
-                className="w-full p-4 rounded-xl glass-input font-mono text-xs text-slate-200 leading-relaxed resize-none focus:ring-2 focus:ring-indigo-500/50"
-              />
+              <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/80">
+                <Editor
+                  height="340px"
+                  language="html"
+                  theme="vs-dark"
+                  value={body}
+                  onChange={(val?: string) => setBody(val || '')}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 12,
+                    lineNumbers: 'on',
+                    scrollBeyondLastLine: false,
+                    wordWrap: 'on',
+                    fontFamily: 'JetBrains Mono, monospace',
+                  }}
+                />
+              </div>
             </div>
           </div>
 
@@ -588,12 +877,23 @@ export const EmailEditorPage: React.FC = () => {
               <span className="text-[10px] text-slate-500">Live Mustache Replacer</span>
             </div>
 
-            <textarea
-              rows={5}
-              value={testDataJson}
-              onChange={(e) => setTestDataJson(e.target.value)}
-              className="w-full p-3.5 rounded-xl glass-input font-mono text-xs text-emerald-400 leading-relaxed resize-none focus:ring-2 focus:ring-indigo-500/50"
-            />
+            <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950/80">
+              <Editor
+                height="160px"
+                language="json"
+                theme="vs-dark"
+                value={testDataJson}
+                onChange={(val?: string) => setTestDataJson(val || '')}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 12,
+                  lineNumbers: 'on',
+                  scrollBeyondLastLine: false,
+                  wordWrap: 'on',
+                  fontFamily: 'JetBrains Mono, monospace',
+                }}
+              />
+            </div>
           </div>
         </div>
 
@@ -680,11 +980,24 @@ export const EmailEditorPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="space-y-2 flex-1">
+              <div className="space-y-2 flex-1 flex flex-col min-h-[460px]">
                 <span className="text-[10px] uppercase font-bold text-slate-400">Mustache Interpolated Raw HTML Output</span>
-                <pre className="p-4 rounded-xl bg-slate-950 border border-slate-900 font-mono text-[11px] text-emerald-400 overflow-x-auto whitespace-pre-wrap max-h-[460px]">
-                  {renderedBody}
-                </pre>
+                <div className="flex-1 rounded-xl border border-slate-900 overflow-hidden bg-slate-950/80">
+                  <Editor
+                    height="460px"
+                    language="html"
+                    theme="vs-dark"
+                    value={renderedBody}
+                    options={{
+                      readOnly: true,
+                      minimap: { enabled: false },
+                      fontSize: 11,
+                      lineNumbers: 'on',
+                      wordWrap: 'on',
+                      scrollBeyondLastLine: false,
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -694,13 +1007,73 @@ export const EmailEditorPage: React.FC = () => {
             <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <Play className="w-4 h-4 text-indigo-400" /> Response Inspector Log
             </h4>
+            {bulkProgress.total > 0 && (
+              <div className="space-y-3 p-4 rounded-xl bg-slate-900/40 border border-slate-800">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                    {bulkSending ? (
+                      <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    )}
+                    <span>{bulkSending ? 'Bulk Campaign Sending...' : 'Bulk Dispatch Completed'}</span>
+                  </span>
+                  <span className="font-mono text-indigo-300 font-bold">
+                    {bulkProgress.current} / {bulkProgress.total}
+                  </span>
+                </div>
+
+                {/* Progress bar line */}
+                <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-slate-800">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 h-full transition-all duration-300"
+                    style={{ width: `${(bulkProgress.current / bulkProgress.total) * 100}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-semibold">
+                  <div className="bg-emerald-950/20 border border-emerald-900/45 rounded-lg py-1 text-emerald-400">
+                    Success: {bulkProgress.successCount}
+                  </div>
+                  <div className="bg-rose-950/20 border border-rose-900/45 rounded-lg py-1 text-rose-400">
+                    Failed: {bulkProgress.failureCount}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {bulkLog.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                  Bulk Delivery Journal
+                </span>
+                <div className="max-h-[140px] overflow-y-auto rounded-xl border border-slate-900 bg-slate-950 p-2 divide-y divide-slate-900/60 font-mono text-[10px]">
+                  {bulkLog.map((log, index) => (
+                    <div key={index} className="py-1 flex items-center justify-between gap-4">
+                      <span className="text-slate-300 truncate max-w-[65%]">{log.email}</span>
+                      <span
+                        className={`font-semibold uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded shrink-0 ${
+                          log.success
+                            ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-900/60'
+                            : 'bg-rose-950/80 text-rose-400 border border-rose-900/60'
+                        }`}
+                      >
+                        {log.success ? 'Success' : 'Failed'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!responseResult ? (
-              <div className="p-6 rounded-xl bg-slate-950/60 border border-slate-900 text-center space-y-1.5">
-                <Send className="w-6 h-6 text-slate-700 mx-auto" />
-                <p className="text-xs text-slate-400 font-medium">Ready to dispatch</p>
-                <p className="text-[11px] text-slate-600">Click "Send Email Now" to execute delivery via backend Email Channel.</p>
-              </div>
+              (!bulkSending && bulkProgress.total === 0) && (
+                <div className="p-6 rounded-xl bg-slate-950/60 border border-slate-900 text-center space-y-1.5">
+                  <Send className="w-6 h-6 text-slate-700 mx-auto" />
+                  <p className="text-xs text-slate-400 font-medium">Ready to dispatch</p>
+                  <p className="text-[11px] text-slate-600">Click "Send Email" to execute delivery via backend Email Channel.</p>
+                </div>
+              )
             ) : (
               <div className="space-y-3">
                 <div
@@ -711,12 +1084,14 @@ export const EmailEditorPage: React.FC = () => {
                   }`}
                 >
                   {responseResult.success ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-                  <span>{responseResult.success ? 'HTTP 201 — Email Sent & Enqueued' : 'HTTP Error — Dispatch Failed'}</span>
+                  <span>{responseResult.success ? 'HTTP 201 — Process Complete' : 'HTTP Error — Dispatch Issues Found'}</span>
                 </div>
 
-                <pre className="p-3.5 rounded-xl bg-slate-950 border border-slate-900 font-mono text-[11px] text-emerald-400 overflow-x-auto max-h-[200px]">
-                  {JSON.stringify(responseResult.data, null, 2)}
-                </pre>
+                <div className="rounded-xl border border-slate-900 overflow-hidden bg-slate-950/80 p-2">
+                  <pre className="font-mono text-[11px] text-emerald-400 overflow-x-auto max-h-[200px] whitespace-pre-wrap">
+                    {JSON.stringify(responseResult.data, null, 2)}
+                  </pre>
+                </div>
               </div>
             )}
           </div>
