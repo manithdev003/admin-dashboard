@@ -26,3 +26,20 @@ export interface DeadLetterEventModel {
     status: string;
   };
 }
+
+export interface BatchDeadLetterEventModel {
+  id: string;
+  originalJobId: string;
+  application: string;
+  event: string;
+  channel: string;
+  retryCount: number;
+  notifications: any;
+  errorMessage: string;
+  status: DeadLetterStatus;
+  failedAt: string;
+  retriedAt?: string | null;
+  resolvedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

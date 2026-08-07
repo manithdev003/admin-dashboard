@@ -13,6 +13,36 @@ export const MetricsPage: React.FC = () => {
   const failureRate = total > 0 ? ((failed / total) * 100).toFixed(1) : '0.0';
   const activeQueueSize = (queueMetrics.waiting || 0) + (queueMetrics.active || 0) + (queueMetrics.delayed || 0);
 
+  const [throughputData, setThroughputData] = React.useState<number[]>(
+    [20, 35, 42, 15, 60, 48, 70, 85, 30, 60, 75, 88, 95, 100, 78, 65, 82, 90]
+  );
+  const metricsRef = React.useRef({ completed, activeQueueSize });
+  const prevCompletedRef = React.useRef(completed);
+
+  React.useEffect(() => {
+    metricsRef.current = { completed, activeQueueSize };
+  }, [completed, activeQueueSize]);
+
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      const currentCompleted = metricsRef.current.completed;
+      const currentActive = metricsRef.current.activeQueueSize;
+      
+      const delta = Math.max(0, currentCompleted - prevCompletedRef.current);
+      prevCompletedRef.current = currentCompleted;
+      
+      setThroughputData(prev => {
+        let newValue = (delta * 15) + (currentActive * 5) + Math.floor(Math.random() * 15);
+        if (delta === 0 && currentActive === 0) {
+           newValue = Math.floor(Math.random() * 8); // idle noise
+        }
+        newValue = Math.min(100, newValue);
+        return [...prev.slice(1), newValue];
+      });
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="space-y-6">
       <div>
@@ -65,7 +95,7 @@ export const MetricsPage: React.FC = () => {
         </h4>
 
         <div className="h-48 flex items-end justify-between gap-2 pt-8 px-2 border-b border-slate-800">
-          {[20, 35, 42, completed > 0 ? 80 : 15, 60, 48, 70, 85, completed > 5 ? 95 : 30, 60, 75, 88, 95, 100, 78, 65, 82, 90].map((height, i) => (
+          {throughputData.map((height, i) => (
             <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
               <div
                 style={{ height: `${height}%` }}

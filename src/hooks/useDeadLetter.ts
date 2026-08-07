@@ -10,6 +10,12 @@ export const useDeadLetter = () => {
     refetchInterval: 10000, // Periodic background polling for dead letters
   });
 
+  const batchQuery = useQuery({
+    queryKey: ['dead-letter-batch'],
+    queryFn: () => deadLetterService.getBatchAll(),
+    refetchInterval: 10000,
+  });
+
   const retryMutation = useMutation({
     mutationFn: (id: string) => deadLetterService.retry(id),
     onSuccess: () => {
@@ -19,11 +25,26 @@ export const useDeadLetter = () => {
     },
   });
 
+  const retryBatchMutation = useMutation({
+    mutationFn: (id: string) => deadLetterService.retryBatch(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dead-letter-batch'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['operations'] });
+    },
+  });
+
   return {
     deadLetterEvents: query.data || [],
-    isLoading: query.isLoading,
-    refetch: query.refetch,
+    batchDeadLetterEvents: batchQuery.data || [],
+    isLoading: query.isLoading || batchQuery.isLoading,
+    refetch: () => {
+      query.refetch();
+      batchQuery.refetch();
+    },
     retryDeadLetter: retryMutation.mutateAsync,
     isRetrying: retryMutation.isPending,
+    retryBatchDeadLetter: retryBatchMutation.mutateAsync,
+    isRetryingBatch: retryBatchMutation.isPending,
   };
 };

@@ -59,7 +59,7 @@ export const AppContent: React.FC = () => {
     deleteRecurringSchedule,
   } = useRecurringSchedules();
   const { publishedEvents, refetch: refetchPublished, publishEvent } = useNotifications();
-  const { deadLetterEvents, refetch: refetchDeadLetter, retryDeadLetter } = useDeadLetter();
+  const { deadLetterEvents, batchDeadLetterEvents, refetch: refetchDeadLetter, retryDeadLetter, retryBatchDeadLetter } = useDeadLetter();
   const { queueMetrics, systemHealth, refetchQueue, refetchHealth } = useOperations(scheduled, publishedEvents);
 
   const addToast = (type: 'success' | 'error' | 'info', title: string, message?: string) => {
@@ -97,6 +97,7 @@ export const AppContent: React.FC = () => {
     recurringSchedules,
     publishedEvents,
     deadLetterEvents,
+    batchDeadLetterEvents,
     healthConnected: systemHealth.backend,
     searchQuery,
     queueMetrics,
@@ -105,6 +106,7 @@ export const AppContent: React.FC = () => {
     isRefreshing: false,
     addToast,
     onRetryDeadLetter: retryDeadLetter,
+    onRetryBatchDeadLetter: retryBatchDeadLetter,
     onCreateApp: createApp,
     onUpdateApp: (id: string, data: any) => updateApp({ id, data }),
     onDeleteApp: deleteApp,
