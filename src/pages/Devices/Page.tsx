@@ -127,70 +127,92 @@ export const DevicesPage: React.FC = () => {
           onAction={() => setIsRegisterOpen(true)}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredDevices.map((d: DeviceModel) => {
             const parentApp = applications.find((a: Application) => a.id === d.applicationId);
+            const devKey = d.id || d.deviceId;
             return (
-              <div key={d.id || d.deviceId} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all">
+              <div key={devKey} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-emerald-500/50 hover:shadow-lg hover:shadow-emerald-950/30 transition-all group">
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/40 text-emerald-400">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="p-2.5 rounded-xl bg-emerald-950/70 border border-emerald-800/40 text-emerald-400 shrink-0 group-hover:scale-105 transition-transform">
                         <Smartphone className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-white font-mono">{d.deviceId}</h4>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-400">
-                          <User className="w-3.5 h-3.5 text-indigo-400" />
-                          <span>User: <strong className="text-slate-200">{d.userId}</strong></span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <h4 className="text-xs font-bold text-white font-mono truncate flex-1" title={d.deviceId}>{d.deviceId}</h4>
+                          <button
+                            onClick={() => handleCopy(d.deviceId, `devid-${devKey}`)}
+                            className="text-slate-400 hover:text-emerald-300 p-0.5 rounded hover:bg-slate-800 transition-colors shrink-0"
+                            title="Copy Device ID"
+                          >
+                            {copiedId === `devid-${devKey}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400 min-w-0">
+                          <User className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                          <span className="truncate">User: <strong className="text-slate-200 font-mono">{d.userId}</strong></span>
+                          <button
+                            onClick={() => handleCopy(d.userId, `userid-${devKey}`)}
+                            className="text-slate-400 hover:text-indigo-300 p-0.5 rounded hover:bg-slate-800 transition-colors shrink-0"
+                            title="Copy User ID"
+                          >
+                            {copiedId === `userid-${devKey}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          </button>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0 justify-end">
                       <StatusBadge status={d.platform} type="platform" />
                       <StatusBadge status={d.isActive} />
                     </div>
                   </div>
 
-                  <div className="mt-3 space-y-1 text-xs text-slate-400">
-                    <div>
+                  <div className="mt-3.5 space-y-1.5 text-xs text-slate-400 bg-slate-900/60 p-2.5 rounded-xl border border-slate-800/60">
+                    <div className="truncate">
                       App: <strong className="text-slate-200">{parentApp?.name || d.applicationId}</strong>
                     </div>
                     {d.email && (
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <Mail className="w-3.5 h-3.5 text-blue-400" />
+                      <div className="flex items-center gap-1.5 text-slate-300 min-w-0">
+                        <Mail className="w-3.5 h-3.5 text-blue-400 shrink-0" />
                         <span className="font-mono text-[11px] truncate">{d.email}</span>
                       </div>
                     )}
                     {d.phone && (
-                      <div className="flex items-center gap-1.5 text-slate-300">
-                        <Phone className="w-3.5 h-3.5 text-teal-400" />
+                      <div className="flex items-center gap-1.5 text-slate-300 min-w-0">
+                        <Phone className="w-3.5 h-3.5 text-teal-400 shrink-0" />
                         <span className="font-mono text-[11px] truncate">{d.phone}</span>
                       </div>
                     )}
                   </div>
 
                   {/* FCM Token Box */}
-                  <div className="mt-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1">
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase">
-                      <span>FCM Token</span>
+                  <div className="mt-3.5 p-3 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1 shadow-inner">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                        FCM TOKEN
+                      </span>
                       <button
-                        onClick={() => handleCopy(d.fcmToken, `token-${d.id}`)}
-                        className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                        onClick={() => handleCopy(d.fcmToken, `token-${devKey}`)}
+                        className="text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-sans text-[11px] font-semibold"
                       >
-                        {copiedId === `token-${d.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                        {copiedId === `token-${devKey}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         <span>Copy</span>
                       </button>
                     </div>
-                    <p className="text-[11px] font-mono text-slate-300 truncate">{d.fcmToken}</p>
+                    <p className="text-[11px] font-mono text-slate-300 truncate" title={d.fcmToken}>{d.fcmToken}</p>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <div className="text-[11px] text-slate-500">
-                    Last Seen: <span className="text-slate-400">{d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Active'}</span>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Last Seen:</span>
+                    <span className="text-slate-300 font-medium">{d.lastSeen ? new Date(d.lastSeen).toLocaleTimeString() : 'Active'}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => handleHeartbeat(d)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"

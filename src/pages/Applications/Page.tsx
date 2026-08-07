@@ -127,30 +127,35 @@ export const ApplicationsPage: React.FC = () => {
           onAction={openCreateModal}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {paginatedApps.map((app: Application) => (
-            <div key={app.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all">
+            <div key={app.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-950/30 transition-all group">
               <div>
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
-                    <div className="p-2.5 rounded-xl bg-indigo-950/70 border border-indigo-800/40 text-indigo-400">
+                <div className="flex items-start justify-between gap-3 min-w-0">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="p-2.5 rounded-xl bg-indigo-950/70 border border-indigo-800/40 text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
                       <Layers className="w-5 h-5" />
                     </div>
-                    <div>
-                      <h4 className="text-base font-bold text-white leading-snug">{app.name}</h4>
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <Code className="w-3 h-3 text-indigo-400" />
-                        <span className="text-xs font-mono text-indigo-300 font-semibold">{app.code}</span>
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-base font-bold text-white leading-snug truncate" title={app.name}>{app.name}</h4>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-950/50 border border-indigo-800/40 text-xs font-mono text-indigo-300 font-semibold">
+                          <Code className="w-3 h-3 text-indigo-400 shrink-0" />
+                          <span className="truncate max-w-[120px]">{app.code}</span>
+                        </span>
                         <button
                           onClick={() => handleCopy(app.code, `code-${app.id}`)}
-                          className="text-slate-500 hover:text-slate-300 p-0.5 rounded transition-colors"
+                          className="text-slate-400 hover:text-indigo-300 p-1 rounded hover:bg-slate-800 transition-colors"
+                          title="Copy App Code"
                         >
-                          {copiedId === `code-${app.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                          {copiedId === `code-${app.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                         </button>
                       </div>
                     </div>
                   </div>
-                  <StatusBadge status={app.status} />
+                  <div className="shrink-0">
+                    <StatusBadge status={app.status} />
+                  </div>
                 </div>
 
                 <p className="text-xs text-slate-400 mt-3 line-clamp-2 leading-relaxed">
@@ -158,20 +163,32 @@ export const ApplicationsPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                <div className="text-[11px] text-slate-500">
-                  ID: <span className="font-mono text-slate-400">{app.id.substring(0, 10)}...</span>
+              <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 min-w-0">
+                  <span className="text-slate-500 font-medium shrink-0">ID:</span>
+                  <span className="font-mono text-slate-300 font-medium truncate" title={app.id}>
+                    {app.id}
+                  </span>
+                  <button
+                    onClick={() => handleCopy(app.id, `appid-${app.id}`)}
+                    className="p-1 text-slate-400 hover:text-indigo-300 hover:bg-slate-800 rounded transition-colors shrink-0"
+                    title="Copy Application ID"
+                  >
+                    {copiedId === `appid-${app.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => openEditModal(app)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-400 hover:bg-slate-800 transition-colors"
+                    title="Edit Application"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => setDeletingApp(app)}
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                    title="Delete Application"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

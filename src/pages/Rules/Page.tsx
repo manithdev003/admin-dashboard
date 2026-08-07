@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Edit2, Trash2, Sliders, Zap, Check, X, ShieldAlert } from 'lucide-react';
+import { Plus, Edit2, Trash2, Sliders, Zap, Check, Copy, X, ShieldAlert } from 'lucide-react';
 import { EventModel, RuleModel, RuleOperator, NotificationChannelType } from '../../types';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -24,6 +24,14 @@ export const RulesPage: React.FC = () => {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<RuleModel | null>(null);
   const [deletingRule, setDeletingRule] = useState<RuleModel | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    addToast('success', 'Copied to clipboard!', text);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   // Form State
   const [eventId, setEventId] = useState(events[0]?.id || '');
@@ -160,31 +168,31 @@ export const RulesPage: React.FC = () => {
           onAction={openCreateModal}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredRules.map((rule: RuleModel) => {
             const parentEvt = events.find((e: EventModel) => e.id === rule.eventId);
             return (
-              <div key={rule.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all">
+              <div key={rule.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-purple-500/50 hover:shadow-lg hover:shadow-purple-950/30 transition-all group">
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2.5 rounded-xl bg-purple-950/70 border border-purple-800/40 text-purple-400">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="p-2.5 rounded-xl bg-purple-950/70 border border-purple-800/40 text-purple-400 shrink-0 group-hover:scale-105 transition-transform">
                         <Sliders className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h4 className="text-base font-bold text-white leading-snug">{rule.name}</h4>
-                        <div className="flex items-center gap-1.5 mt-0.5 text-xs text-slate-400">
-                          <Zap className="w-3.5 h-3.5 text-amber-400" />
-                          <span>{parentEvt?.name || rule.eventId}</span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-base font-bold text-white leading-snug truncate" title={rule.name}>{rule.name}</h4>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-400">
+                          <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                          <span className="truncate">{parentEvt?.name || rule.eventId}</span>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1.5 shrink-0 justify-end">
                       {rule.channel && <StatusBadge status={rule.channel} type="channel" />}
                       <button
                         onClick={() => onToggleRule(rule.id, rule.enabled)}
-                        className={`px-2.5 py-1 rounded-full text-xs font-bold transition-all ${
-                          rule.enabled ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400 border border-slate-700'
+                        className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide transition-all ${
+                          rule.enabled ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 hover:bg-emerald-900' : 'bg-slate-800/80 text-slate-400 border border-slate-700 hover:bg-slate-700'
                         }`}
                       >
                         {rule.enabled ? 'ENABLED' : 'DISABLED'}
@@ -192,31 +200,46 @@ export const RulesPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="text-xs text-slate-400 mt-3 line-clamp-2">{rule.description || 'No description provided.'}</p>
+                  <p className="text-xs text-slate-400 mt-3 line-clamp-2 leading-relaxed">{rule.description || 'No description provided.'}</p>
 
                   {/* Condition Builder Expression Card */}
-                  <div className="mt-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5 font-mono text-xs">
-                    <div className="flex items-center justify-between text-[10px] text-purple-400 font-bold font-sans uppercase">
-                      <span>Condition Builder</span>
-                      <span>Priority #{rule.priority}</span>
+                  <div className="mt-3.5 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-2 font-mono text-xs shadow-inner">
+                    <div className="flex items-center justify-between text-[10px] text-purple-400 font-bold font-sans tracking-wider uppercase">
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
+                        CONDITION BUILDER
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-purple-950/60 border border-purple-800/50 text-purple-300 font-mono text-[10px]">
+                        PRIORITY #{rule.priority}
+                      </span>
                     </div>
-                    <div className="p-2 rounded-lg bg-slate-900 border border-slate-800/80 text-slate-200">
-                      <span className="text-indigo-400 font-bold">{rule.field}</span>{' '}
-                      <span className="text-amber-400 font-bold">{rule.operator}</span>{' '}
-                      <span className="text-emerald-400 font-bold">"{String(rule.value)}"</span>
+                    <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-800/80 text-slate-200 flex flex-wrap items-center gap-1.5 min-w-0 overflow-x-auto">
+                      <span className="px-2 py-0.5 rounded bg-indigo-950/80 border border-indigo-800/50 text-indigo-300 font-bold truncate max-w-full">{rule.field}</span>
+                      <span className="px-2 py-0.5 rounded bg-amber-950/80 border border-amber-800/50 text-amber-300 font-bold shrink-0">{rule.operator}</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-950/80 border border-emerald-800/50 text-emerald-300 font-bold truncate max-w-full">"{String(rule.value)}"</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <div className="text-[11px] text-slate-500">
-                    ID: <span className="font-mono text-slate-400">{rule.id.substring(0, 10)}...</span>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 min-w-0">
+                    <span className="text-slate-500 font-medium shrink-0">ID:</span>
+                    <span className="font-mono text-slate-300 font-medium truncate" title={rule.id}>
+                      {rule.id}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(rule.id, `ruleid-${rule.id}`)}
+                      className="p-1 text-slate-400 hover:text-purple-300 hover:bg-slate-800 rounded transition-colors shrink-0"
+                      title="Copy Rule ID"
+                    >
+                      {copiedId === `ruleid-${rule.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button onClick={() => openEditModal(rule)} className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-slate-800 transition-colors">
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button onClick={() => openEditModal(rule)} className="p-1.5 rounded-lg text-slate-400 hover:text-purple-400 hover:bg-slate-800 transition-colors" title="Edit Rule">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setDeletingRule(rule)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors">
+                    <button onClick={() => setDeletingRule(rule)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors" title="Delete Rule">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

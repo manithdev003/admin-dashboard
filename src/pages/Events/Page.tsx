@@ -140,57 +140,74 @@ export const EventsPage: React.FC = () => {
           onAction={openCreateModal}
         />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {filteredEvents.map((evt: EventModel) => {
             const parentApp = applications.find((a: Application) => a.id === evt.applicationId);
             return (
-              <div key={evt.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-slate-700 transition-all">
+              <div key={evt.id} className="glass-card rounded-2xl p-5 border flex flex-col justify-between space-y-4 hover:border-amber-500/50 hover:shadow-lg hover:shadow-amber-950/30 transition-all group">
                 <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5">
-                      <div className="p-2.5 rounded-xl bg-amber-950/70 border border-amber-800/40 text-amber-400">
+                  <div className="flex items-start justify-between gap-3 min-w-0">
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <div className="p-2.5 rounded-xl bg-amber-950/70 border border-amber-800/40 text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
                         <Zap className="w-5 h-5" />
                       </div>
-                      <div>
-                        <h4 className="text-base font-bold text-white leading-snug">{evt.name}</h4>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-xs font-mono text-amber-300 font-semibold">{evt.code}</span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-base font-bold text-white leading-snug truncate" title={evt.name}>{evt.name}</h4>
+                        <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-950/50 border border-amber-800/40 text-xs font-mono text-amber-300 font-semibold">
+                            <span className="truncate max-w-[140px]">{evt.code}</span>
+                          </span>
                           <button
                             onClick={() => handleCopy(evt.code, `code-${evt.id}`)}
-                            className="text-slate-500 hover:text-slate-300 p-0.5 rounded transition-colors"
+                            className="text-slate-400 hover:text-amber-300 p-1 rounded hover:bg-slate-800 transition-colors"
+                            title="Copy Event Code"
                           >
-                            {copiedId === `code-${evt.id}` ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                            {copiedId === `code-${evt.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                           </button>
                         </div>
                       </div>
                     </div>
-                    <StatusBadge status={evt.status} />
+                    <div className="shrink-0">
+                      <StatusBadge status={evt.status} />
+                    </div>
                   </div>
 
-                  <div className="mt-3 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400">
-                    <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>App: {parentApp?.name || evt.applicationId}</span>
+                  <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800/60">
+                    <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="truncate">App: <strong className="text-slate-200">{parentApp?.name || evt.applicationId}</strong></span>
                   </div>
 
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-400 mt-2.5 line-clamp-2 leading-relaxed">
                     {evt.description || 'No description specified.'}
                   </p>
                 </div>
 
-                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                  <div className="text-[11px] text-slate-500">
-                    ID: <span className="font-mono text-slate-400">{evt.id.substring(0, 10)}...</span>
+                <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 text-[11px] text-slate-400 min-w-0">
+                    <span className="text-slate-500 font-medium shrink-0">ID:</span>
+                    <span className="font-mono text-slate-300 font-medium truncate" title={evt.id}>
+                      {evt.id}
+                    </span>
+                    <button
+                      onClick={() => handleCopy(evt.id, `evtid-${evt.id}`)}
+                      className="p-1 text-slate-400 hover:text-amber-300 hover:bg-slate-800 rounded transition-colors shrink-0"
+                      title="Copy Event ID"
+                    >
+                      {copiedId === `evtid-${evt.id}` ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => openEditModal(evt)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-amber-400 hover:bg-slate-800 transition-colors"
+                      title="Edit Event"
                     >
                       <Edit2 className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => setDeletingEvent(evt)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+                      title="Delete Event"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

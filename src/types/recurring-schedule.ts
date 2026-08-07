@@ -10,6 +10,7 @@ export interface RecurringScheduleModel {
   eventId: string;
   event?: EventModel;
   userId: string;
+  callbackUrl?: string;
   payload: any;
   cronExpression: string;
   schedulerId?: string | null;

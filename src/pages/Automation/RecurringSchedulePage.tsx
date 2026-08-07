@@ -47,6 +47,7 @@ export const RecurringSchedulePage: React.FC = () => {
   const [appCode, setAppCode] = useState(applications[0]?.code || 'equity');
   const [eventCode, setEventCode] = useState(events[0]?.code || 'portfolio.summary.updated');
   const [userId, setUserId] = useState('oiEYUVV7rCIM57KNQwHgN42ivddqvqVe');
+  const [callbackUrl, setCallbackUrl] = useState('');
   const [cronExpression, setCronExpression] = useState('0 9 * * 1-5');
   const [payloadJson, setPayloadJson] = useState(DEFAULT_PAYLOAD);
 
@@ -75,6 +76,7 @@ export const RecurringSchedulePage: React.FC = () => {
     const appEvts = events.filter((e: EventModel) => !parentAppObj || e.applicationId === parentAppObj.id);
     setEventCode(appEvts[0]?.code || 'portfolio.summary.updated');
     setUserId('oiEYUVV7rCIM57KNQwHgN42ivddqvqVe');
+    setCallbackUrl('');
     setCronExpression('0 9 * * 1-5');
     setPayloadJson(DEFAULT_PAYLOAD);
     setIsCreateOpen(true);
@@ -115,6 +117,7 @@ export const RecurringSchedulePage: React.FC = () => {
         application: appCode,
         event: eventCode,
         userId: userId.trim(),
+        callbackUrl: callbackUrl.trim() || undefined,
         payload: parsedPayload,
         cronExpression: cronExpression.trim(),
       });
@@ -216,7 +219,7 @@ export const RecurringSchedulePage: React.FC = () => {
               <thead className="bg-slate-900/80 border-b border-slate-800 uppercase tracking-wider text-slate-400 font-semibold">
                 <tr>
                   <th className="px-5 py-3">Schedule ID</th>
-                  <th className="px-5 py-3">Recipient (userId)</th>
+                  <th className="px-5 py-3">Recipient / Callback</th>
                   <th className="px-5 py-3">Cron Expression</th>
                   <th className="px-5 py-3">Status</th>
                   <th className="px-5 py-3">Created</th>
@@ -227,7 +230,12 @@ export const RecurringSchedulePage: React.FC = () => {
                 {filtered.map((item: RecurringScheduleModel) => (
                   <tr key={item.id} className="hover:bg-slate-900/50 transition-colors">
                     <td className="px-5 py-3.5 text-indigo-300 font-bold">{item.id}</td>
-                    <td className="px-5 py-3.5 text-slate-200 font-sans">{item.userId}</td>
+                    <td className="px-5 py-3.5 text-slate-200 font-sans">
+                      <div className="flex flex-col">
+                        <span>{item.userId}</span>
+                        {item.callbackUrl && <span className="text-[10px] text-indigo-300 truncate max-w-[200px]" title={item.callbackUrl}>{item.callbackUrl}</span>}
+                      </div>
+                    </td>
                     <td className="px-5 py-3.5 text-amber-300 font-bold">
                       <div className="flex items-center gap-1.5 font-mono">
                         <Clock className="w-3.5 h-3.5 text-amber-400" />
@@ -311,9 +319,16 @@ export const RecurringSchedulePage: React.FC = () => {
               </div>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">User ID *</label>
-              <input type="text" required value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">User ID *</label>
+                <input type="text" required value={userId} onChange={(e) => setUserId(e.target.value)} className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
+              </div>
+
+              <div>
+                <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Callback URL</label>
+                <input type="url" value={callbackUrl} onChange={(e) => setCallbackUrl(e.target.value)} placeholder="https://api.example.com/webhook" className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono" />
+              </div>
             </div>
 
             <div>
