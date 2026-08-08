@@ -303,7 +303,7 @@ export const DeadLetterPage: React.FC = () => {
                   const canRetry = item.status !== 'RESOLVED';
                   
                   const isBatch = activeTab === 'batch';
-                  const maxAttempts = isBatch ? 3 : (item.maxAttempts || 3);
+                  const maxAttempts = isBatch ? 5 : (item.maxAttempts || 3);
                   const attemptsMade = isBatch ? item.retryCount : item.attemptsMade;
 
                   return (
@@ -548,7 +548,7 @@ export const DeadLetterPage: React.FC = () => {
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
                   <span className="text-[10px] uppercase font-bold text-slate-500 block">Retry Count</span>
                   <span className="font-mono text-rose-400 font-semibold">
-                    {selectedBatchEvent.retryCount} of 3
+                    {selectedBatchEvent.retryCount} of 5
                   </span>
                 </div>
                 <div className="p-3 rounded-xl bg-slate-950 border border-slate-800/80">
@@ -618,4 +618,3 @@ export const DeadLetterPage: React.FC = () => {
     </div>
   );
 };
-
