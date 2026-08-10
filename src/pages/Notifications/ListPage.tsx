@@ -15,8 +15,9 @@ export const NotificationsListPage: React.FC = () => {
   const [recipientFilter, setRecipientFilter] = useState('');
 
   const filtered = publishedEvents.filter((item: any) => {
+    const itemChannel = item.channel || item.event?.rules?.[0]?.channel || 'EMAIL';
     const matchesApp = !selectedAppId || item.applicationId === selectedAppId;
-    const matchesChannel = !selectedChannel || (item.channel || 'PUSH') === selectedChannel;
+    const matchesChannel = !selectedChannel || itemChannel === selectedChannel;
     const matchesStatus = !selectedStatus || item.status === selectedStatus;
     const matchesRecipient = !recipientFilter || item.userId.toLowerCase().includes(recipientFilter.toLowerCase());
 
@@ -125,7 +126,7 @@ export const NotificationsListPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-5 py-3.5 font-sans">
-                      <StatusBadge status={item.channel || 'PUSH'} type="channel" />
+                      <StatusBadge status={item.channel || item.event?.rules?.[0]?.channel || 'EMAIL'} type="channel" />
                     </td>
                     <td className="px-5 py-3.5 font-sans">
                       <StatusBadge status={item.status} />
