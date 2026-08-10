@@ -10,6 +10,10 @@ export const DevicesPage: React.FC = () => {
   const { applications, devices, searchQuery, onRegisterDevice, onHeartbeatDevice, onDeactivateDevice, onDeleteDevice, addToast } = useOutletContext<any>();
 
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isSyncOpen, setIsSyncOpen] = useState(false);
+  const [syncUrl, setSyncUrl] = useState('http://localhost:8080/v1/webhooks/sync-devices');
+  const [syncLoading, setSyncLoading] = useState(false);
+
   const [deletingDevice, setDeletingDevice] = useState<DeviceModel | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -111,6 +115,22 @@ export const DevicesPage: React.FC = () => {
     }
   };
 
+  const handleSyncDevices = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!syncUrl.trim()) return;
+    setSyncLoading(true);
+    try {
+      // Use no-cors mode in case the client doesn't support CORS from the admin dashboard
+      await fetch(syncUrl, { method: 'POST', mode: 'no-cors' });
+      addToast('success', 'Sync Triggered', 'Webhook sent to client system successfully! Refresh the page shortly to see imported devices.');
+      setIsSyncOpen(false);
+    } catch (err: any) {
+      addToast('error', 'Sync Failed', 'Could not reach the webhook URL. Make sure the client server is running.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Header */}
@@ -133,6 +153,15 @@ export const DevicesPage: React.FC = () => {
               ))}
             </select>
           )}
+          
+          <button
+            onClick={() => setIsSyncOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold transition-all"
+          >
+            <Power className="w-4 h-4 text-emerald-400" />
+            <span>Sync Clients</span>
+          </button>
+
           <button
             onClick={() => setIsRegisterOpen(true)}
             disabled={applications.length === 0}
@@ -283,7 +312,31 @@ export const DevicesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Sync Modal */}
+      {isSyncOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <form onSubmit={handleSyncDevices} className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-modal space-y-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Power className="w-5 h-5 text-emerald-400" /> Trigger Client Sync
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              If your external client application supports the <strong>Bulk Sync Webhook</strong>, enter its URL below to force it to push all missing users into the Notification Service.
+            </p>
+
+            <div>
+              <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider block mb-1">Client Webhook URL *</label>
+              <input type="url" required value={syncUrl} onChange={(e) => setSyncUrl(e.target.value)} placeholder="http://localhost:8080/v1/webhooks/sync-devices" className="w-full px-4 py-2 rounded-xl glass-input text-sm font-mono text-emerald-300" />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setIsSyncOpen(false)} className="px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800 rounded-xl">Cancel</button>
+              <button type="submit" disabled={syncLoading} className="px-4 py-2 text-xs font-semibold text-slate-900 bg-emerald-400 hover:bg-emerald-300 rounded-xl shadow-lg shadow-emerald-900/50 disabled:opacity-50">{syncLoading ? 'Triggering...' : 'Trigger Sync'}</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Register Modal */}
       {isRegisterOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
           <form onSubmit={handleSaveRegister} className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl animate-modal space-y-4">
