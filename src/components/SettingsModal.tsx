@@ -77,7 +77,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, o
               type="text"
               value={apiUrl}
               onChange={(e) => setApiUrl(e.target.value)}
-              placeholder="http://localhost:3000/api/v1"
+              placeholder="http://localhost:4000/api/v1"
               className="w-full px-4 py-2.5 rounded-xl glass-input text-sm"
             />
             <p className="text-[11px] text-slate-500 mt-1">Default Express backend endpoint route</p>

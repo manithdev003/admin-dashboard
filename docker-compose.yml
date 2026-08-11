@@ -1,0 +1,16 @@
+services:
+  admin-dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: manith003/admin-dashboard:latest
+    container_name: admin-dashboard
+    ports:
+      - "5173:80"
+    networks:
+      - notificationservice_default
+    restart: unless-stopped
+
+networks:
+  notificationservice_default:
+    external: true

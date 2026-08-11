@@ -43,11 +43,11 @@ export const SettingsPage: React.FC = () => {
             required
             value={apiUrl}
             onChange={(e) => setApiUrl(e.target.value)}
-            placeholder="http://localhost:3000/api/v1"
+            placeholder="http://localhost:4000/api/v1"
             className="w-full px-4 py-2.5 rounded-xl glass-input text-xs font-mono text-indigo-300 font-bold"
           />
           <p className="text-[11px] text-slate-400 mt-1">
-            Accepts local endpoints (<code className="text-slate-300">http://localhost:3000/api/v1</code>) or Ngrok tunnels (<code className="text-slate-300">https://xxxx.ngrok-free.dev/api/v1</code>).
+            Accepts local endpoints (<code className="text-slate-300">http://localhost:4000/api/v1</code>) or Ngrok tunnels (<code className="text-slate-300">https://xxxx.ngrok-free.dev/api/v1</code>).
           </p>
         </div>
 

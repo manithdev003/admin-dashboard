@@ -1,10 +1,15 @@
 import axios, { AxiosInstance } from 'axios';
 import { HealthCheckResponse } from '../types';
 
-const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const DEFAULT_API_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1';
 
 export const getStoredApiUrl = (): string => {
-  return localStorage.getItem('admin_api_url') || DEFAULT_API_URL;
+  const stored = localStorage.getItem('admin_api_url');
+  if (stored && stored.includes('localhost:3000')) {
+    localStorage.removeItem('admin_api_url');
+    return DEFAULT_API_URL;
+  }
+  return stored || DEFAULT_API_URL;
 };
 
 export const setStoredApiUrl = (url: string) => {
