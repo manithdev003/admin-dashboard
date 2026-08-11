@@ -13,35 +13,6 @@ export const MetricsPage: React.FC = () => {
   const failureRate = total > 0 ? ((failed / total) * 100).toFixed(1) : '0.0';
   const activeQueueSize = (queueMetrics.waiting || 0) + (queueMetrics.active || 0) + (queueMetrics.delayed || 0);
 
-  const [throughputData, setThroughputData] = React.useState<number[]>(
-    [20, 35, 42, 15, 60, 48, 70, 85, 30, 60, 75, 88, 95, 100, 78, 65, 82, 90]
-  );
-  const metricsRef = React.useRef({ completed, activeQueueSize });
-  const prevCompletedRef = React.useRef(completed);
-
-  React.useEffect(() => {
-    metricsRef.current = { completed, activeQueueSize };
-  }, [completed, activeQueueSize]);
-
-  React.useEffect(() => {
-    const interval = setInterval(() => {
-      const currentCompleted = metricsRef.current.completed;
-      const currentActive = metricsRef.current.activeQueueSize;
-      
-      const delta = Math.max(0, currentCompleted - prevCompletedRef.current);
-      prevCompletedRef.current = currentCompleted;
-      
-      setThroughputData(prev => {
-        let newValue = (delta * 15) + (currentActive * 5) + Math.floor(Math.random() * 15);
-        if (delta === 0 && currentActive === 0) {
-           newValue = Math.floor(Math.random() * 8); // idle noise
-        }
-        newValue = Math.min(100, newValue);
-        return [...prev.slice(1), newValue];
-      });
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="space-y-6">
@@ -88,21 +59,20 @@ export const MetricsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Real-Time Throughput Graph Visualizer */}
+
+      {/* Grafana Embedded Dashboard */}
       <div className="glass-panel rounded-2xl p-6 border space-y-4">
         <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-          <BarChart3 className="w-4 h-4 text-indigo-400" /> Dynamic Telemetry Throughput
+          <Activity className="w-4 h-4 text-emerald-400" /> Advanced Grafana Telemetry
         </h4>
-
-        <div className="h-48 flex items-end justify-between gap-2 pt-8 px-2 border-b border-slate-800">
-          {throughputData.map((height, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1 group">
-              <div
-                style={{ height: `${height}%` }}
-                className="w-full bg-gradient-to-t from-indigo-600 via-indigo-500 to-purple-500 rounded-t-sm group-hover:brightness-125 transition-all"
-              />
-            </div>
-          ))}
+        <div className="w-full h-[600px] rounded-xl overflow-hidden border border-slate-700/50 bg-[#111217]">
+          <iframe 
+            src={import.meta.env.VITE_GRAFANA_URL || "http://localhost:3000/?orgId=1&kiosk"} 
+            width="100%" 
+            height="100%" 
+            frameBorder="0"
+            title="Grafana Dashboard"
+          />
         </div>
       </div>
     </div>
