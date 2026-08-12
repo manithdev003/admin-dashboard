@@ -24,8 +24,8 @@ import { DeadLetterPage } from './pages/Operations/DeadLetterPage';
 import { MetricsPage } from './pages/Operations/MetricsPage';
 import { WorkersPage } from './pages/Operations/WorkersPage';
 import { SystemHealthPage } from './pages/Operations/SystemHealthPage';
+import { AuditLogsPage } from './pages/Operations/AuditLogsPage';
 import { SettingsPage } from './pages/Settings/Page';
-
 // TanStack Query Custom Hooks
 import { useApplications } from './hooks/useApplications';
 import { useEvents } from './hooks/useEvents';
@@ -171,6 +171,7 @@ export const AppContent: React.FC = () => {
         <Route path="operations/dead-letter" element={<DeadLetterPage />} />
         <Route path="operations/metrics" element={<MetricsPage />} />
         <Route path="operations/workers" element={<WorkersPage />} />
+        <Route path="operations/audit-logs" element={<AuditLogsPage />} />
         <Route path="operations/health" element={<SystemHealthPage />} />
         <Route path="settings" element={<SettingsPage />} />
       </Route>

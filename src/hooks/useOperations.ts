@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { operationsService } from '../services/operations.service';
 import { ScheduledNotificationModel } from '../types';
+import { getStoredAutoRefresh } from '../services/api';
 
 export const useOperations = (scheduled: ScheduledNotificationModel[] = [], publishedEvents: any[] = []) => {
+  const autoRefresh = getStoredAutoRefresh();
+
   const queueQuery = useQuery({
     queryKey: ['queueMetrics', scheduled.length, publishedEvents.length],
     queryFn: () => operationsService.getQueueMetrics(scheduled, publishedEvents),
@@ -11,7 +14,7 @@ export const useOperations = (scheduled: ScheduledNotificationModel[] = [], publ
   const healthQuery = useQuery({
     queryKey: ['systemHealth'],
     queryFn: () => operationsService.getSystemHealth(),
-    refetchInterval: 15000,
+    refetchInterval: autoRefresh ? 15000 : false,
   });
 
   return {

@@ -83,6 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ healthConnected, onOpenSetting
         { path: '/operations/dead-letter', label: 'Dead Letter Queue', icon: AlertTriangle },
         { path: '/operations/metrics', label: 'Metrics', icon: BarChart3 },
         { path: '/operations/workers', label: 'Workers', icon: Cpu },
+        { path: '/operations/audit-logs', label: 'Audit Logs', icon: FileText },
         { path: '/operations/health', label: 'System Health', icon: ShieldCheck },
       ],
     },

@@ -1,19 +1,22 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { deadLetterService } from '../services/dead-letter.service';
 
+import { getStoredAutoRefresh } from '../services/api';
+
 export const useDeadLetter = () => {
   const queryClient = useQueryClient();
+  const autoRefresh = getStoredAutoRefresh();
 
   const query = useQuery({
     queryKey: ['dead-letter'],
     queryFn: () => deadLetterService.getAll(),
-    refetchInterval: 10000, // Periodic background polling for dead letters
+    refetchInterval: autoRefresh ? 10000 : false, // Periodic background polling for dead letters
   });
 
   const batchQuery = useQuery({
     queryKey: ['dead-letter-batch'],
     queryFn: () => deadLetterService.getBatchAll(),
-    refetchInterval: 10000,
+    refetchInterval: autoRefresh ? 10000 : false,
   });
 
   const retryMutation = useMutation({

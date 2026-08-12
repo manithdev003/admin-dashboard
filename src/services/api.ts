@@ -16,6 +16,15 @@ export const setStoredApiUrl = (url: string) => {
   localStorage.setItem('admin_api_url', url);
 };
 
+export const getStoredAutoRefresh = (): boolean => {
+  const stored = localStorage.getItem('admin_auto_refresh');
+  return stored !== 'false';
+};
+
+export const setStoredAutoRefresh = (enabled: boolean) => {
+  localStorage.setItem('admin_auto_refresh', enabled.toString());
+};
+
 export const createApiClient = (): AxiosInstance => {
   const baseURL = getStoredApiUrl();
 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Save } from 'lucide-react';
-import { getStoredApiUrl, setStoredApiUrl } from '../../services/api';
+import { getStoredApiUrl, setStoredApiUrl, getStoredAutoRefresh, setStoredAutoRefresh } from '../../services/api';
 import { getStoredTheme, applyTheme, ThemeMode } from '../../utils/theme';
 
 export const SettingsPage: React.FC = () => {
@@ -9,7 +9,7 @@ export const SettingsPage: React.FC = () => {
 
   const [apiUrl, setApiUrl] = useState(getStoredApiUrl());
   const [theme, setTheme] = useState<ThemeMode>(getStoredTheme());
-  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(getStoredAutoRefresh());
 
   const handleThemeChange = (newTheme: ThemeMode) => {
     setTheme(newTheme);
@@ -21,8 +21,9 @@ export const SettingsPage: React.FC = () => {
     e.preventDefault();
     if (!apiUrl.trim()) return;
     setStoredApiUrl(apiUrl.trim());
+    setStoredAutoRefresh(autoRefresh);
     applyTheme(theme);
-    addToast('success', 'Settings Saved', 'Platform API base URL & theme preferences saved.');
+    addToast('success', 'Settings Saved', 'Platform API base URL, Theme & Telemetry preferences saved.');
     onRefresh();
   };
 
